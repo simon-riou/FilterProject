@@ -20,11 +20,11 @@ int main() {
     fileDialog.SetTitle("Select an image");
     fileDialog.SetTypeFilters({ ".jpg", ".jpeg", ".png" });
 
-    // Variables pour stocker la texture et le sprite sélectionnés
     sf::Texture texture;
 	sf::Texture original_texture;
     sf::Sprite sprite(texture);
     bool hasImage = false;
+    bool hasChannelReseted = false;
     bool redSelected = false, greenSelected = false, blueSelected = false;
 
     sf::Clock deltaClock;
@@ -42,11 +42,9 @@ int main() {
 
         if (ImGui::Begin("Window"))
         {
-            // Bouton d'ouverture de fichier toujours actif
             if (ImGui::Button("Open file"))
                 fileDialog.Open();
 
-            // On désactive les autres boutons si aucune image n'est chargée
             ImGui::BeginDisabled(!hasImage);
 
             if (ImGui::Button("Original")) {
@@ -60,7 +58,6 @@ int main() {
                 sprite.setTexture(texture, true);
             }
 
-            // Boutons de sélection des canaux
             ImGui::Text("Choose channels :");
             ImGui::Checkbox("Red", &redSelected);
             ImGui::SameLine();
@@ -68,18 +65,22 @@ int main() {
             ImGui::SameLine();
             ImGui::Checkbox("Blue", &blueSelected);
 
-            // Exemple d'application des sélections sur la texture
             if (redSelected || greenSelected || blueSelected) {
+                hasChannelReseted = false;
                 texture = original_texture;
-                // Fonction fictive qui combine les canaux sélectionnés
                 texture = combine_channels(texture, redSelected, greenSelected, blueSelected);
                 sprite.setTexture(texture, true);
+            }
+            else if (hasChannelReseted == false) {
+                hasChannelReseted = true;
+				texture = original_texture;
+				sprite.setTexture(texture, true);
             }
 
             ImGui::Text("Choose filter :");
 
             if (ImGui::Button("Average filter")) {
-                texture = average_filter(texture);
+                texture = convolution_filter(texture, FilterType::MEAN, 15, PaddingType::REPLICATE);
                 sprite.setTexture(texture, true);
             }
 
@@ -96,31 +97,21 @@ int main() {
                 return EXIT_FAILURE;
             }
 
+			// save the original texture, not sure it's the best way but it works
 			original_texture.loadFromImage(texture.copyToImage());
 
-            // Create a sprite that uses the loaded texture.
+			// Rescale the image to fit the window
 			sprite.setTexture(texture, true);
             hasImage = true;
-
-            // Taille de la fenêtre et de l'image (dans la texture)
             sf::Vector2u windowSize = window.getSize();
             sf::Vector2u textureSize = texture.getSize();
-
-            // Calcul des facteurs d'échelle sur X et sur Y
             float scaleX = static_cast<float>(windowSize.x) / textureSize.x;
             float scaleY = static_cast<float>(windowSize.y) / textureSize.y;
-
-            // Choisir le plus petit pour ne pas déformer l'image
             float scale = std::min(scaleX, scaleY);
-
-            // Appliquer ce facteur sur le sprite
             sprite.setScale({ scale, scale });
-
-            // (Optionnel) Centrer l'image dans la fenêtre
             sf::FloatRect spriteBounds = sprite.getGlobalBounds();
             sprite.setPosition({ (windowSize.x - spriteBounds.size.x) / 2,
                 (windowSize.y - spriteBounds.size.y) / 2 });
-
 			std::cout << "Selected filename: " << fileDialog.GetSelected().string() << std::endl;
             fileDialog.ClearSelected();
         }
