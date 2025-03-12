@@ -12,6 +12,15 @@ FetchContent_Declare(SFML
     SYSTEM)
 FetchContent_MakeAvailable(SFML)
 
-add_executable(main src/main.cpp)
+set(IMGUI_SRC
+    imgui/imgui-SFML.cpp
+    imgui/imgui.cpp
+    imgui/imgui_draw.cpp
+    imgui/imgui_tables.cpp
+    imgui/imgui_widgets.cpp
+)
+
+add_executable(main src/main.cpp ${IMGUI_SRC} "include/filters.h" "include/image_encoding.h")
 target_compile_features(main PRIVATE cxx_std_17)
-target_link_libraries(main PRIVATE SFML::Graphics)
+target_include_directories(main PRIVATE imgui/)
+target_link_libraries(main PRIVATE SFML::Graphics SFML::Window SFML::System)
