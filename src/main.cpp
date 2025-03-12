@@ -79,8 +79,8 @@ int main() {
 
             ImGui::Text("Choose filter :");
 
-            if (ImGui::Button("Average filter")) {
-                texture = convolution_filter(texture, FilterType::MEAN, 15, PaddingType::REPLICATE);
+            if (ImGui::Button("Convolution")) {
+                texture = convolution_filter(texture, FilterType::GAUSSIAN, 5);
                 sprite.setTexture(texture, true);
             }
 

@@ -7,6 +7,8 @@
 #include <iostream>
 #include <cmath>
 
+#include "kernel_computation.h"
+
 enum class FilterType {
 	IDENTITY,
 	MEAN,
@@ -21,12 +23,14 @@ enum class PaddingType {
 };
 
 inline std::vector<double> get_kernel(FilterType filtertype, size_t kernel_size) {
-	switch (filtertype) {
-	case FilterType::IDENTITY:
-		return { 1 };
-	case FilterType::MEAN:
-		return std::vector<double>(kernel_size * kernel_size, 1.0f / static_cast<double>(kernel_size * kernel_size));
-	}
+    switch (filtertype) {
+    case FilterType::IDENTITY:
+        return compute_identity_kernel();
+    case FilterType::MEAN:
+        return compute_mean_kernel(kernel_size);
+    case FilterType::GAUSSIAN:
+        return compute_gaussian_kernel(kernel_size);
+    }
 	return {};
 }
 
