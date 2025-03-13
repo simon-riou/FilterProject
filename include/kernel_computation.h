@@ -39,3 +39,19 @@ inline std::vector<double> compute_gaussian_kernel(size_t kernel_size) {
 
     return h;
 }
+
+inline std::vector<double> compute_sharpen_kernel() {
+	return { 0, -1, 0, -1, 5, -1, 0, -1, 0 };
+}
+
+inline std::vector<double> compute_laplacien_kernel() {
+	return { 0, 1, 0, 1, -4, 1, 0, 1, 0 };
+}
+
+inline std::vector<double> compute_edge_reiforcement_hor() {
+	return { 0, 0, 0, -1, 2, -1, 0, 0, 0 };
+}
+
+inline std::vector<double> compute_edge_reiforcement_ver() {
+	return { 0, -1, 0, 0, 2, 0, 0, -1, 0 };
+}

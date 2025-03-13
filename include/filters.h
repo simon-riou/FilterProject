@@ -14,7 +14,9 @@ enum class FilterType {
 	MEAN,
 	GAUSSIAN,
 	SHARPEN,
-	LAPLACIEN
+	LAPLACIEN,
+	EDGE_REINFORCEMENT_HOR,
+	EDGE_REINFORCEMENT_VER
 };
 
 enum class PaddingType {
@@ -30,6 +32,14 @@ inline std::vector<double> get_kernel(FilterType filtertype, size_t kernel_size)
         return compute_mean_kernel(kernel_size);
     case FilterType::GAUSSIAN:
         return compute_gaussian_kernel(kernel_size);
+	case FilterType::SHARPEN:
+		return compute_sharpen_kernel();
+	case FilterType::LAPLACIEN:
+		return compute_laplacien_kernel();
+	case FilterType::EDGE_REINFORCEMENT_HOR:
+        return compute_edge_reiforcement_hor();
+	case FilterType::EDGE_REINFORCEMENT_VER:
+		return compute_edge_reiforcement_ver();
     }
 	return {};
 }
@@ -95,7 +105,20 @@ inline sf::Texture convolution_filter(const sf::Texture& texture, FilterType fil
     }
     pixels.assign(originalPixels, originalPixels + size.x * size.y * 4);
 
-	apply_convolution(pixels, size, kernel, kernel_size, paddingtype);
+    switch (filtertype) {
+        case FilterType::IDENTITY:
+            return texture;
+        case FilterType::MEAN:
+        case FilterType::GAUSSIAN:
+            apply_convolution(pixels, size, kernel, kernel_size, paddingtype);
+            break;
+        case FilterType::SHARPEN:
+        case FilterType::LAPLACIEN:
+		case FilterType::EDGE_REINFORCEMENT_HOR:
+		case FilterType::EDGE_REINFORCEMENT_VER:
+            apply_convolution(pixels, size, kernel, 3, paddingtype);
+            break;
+    }
 
     sf::Image outputImage(size, pixels.data());
 

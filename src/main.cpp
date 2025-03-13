@@ -8,15 +8,22 @@
 #include <SFML/Graphics.hpp>
 #include <iostream>
 
+static float PANEL_WIDTH = 110.0f;
+static bool showConvolutionWindow = false;
+static int selectedFilter = 0;
+static int kernelSize = 3;
+
 int main() {
-    sf::RenderWindow window(sf::VideoMode({ 640, 480 }), "ImGui + SFML = <3");
+    const int windowWidth = 1250;
+    const float aspectRatio = 16.0f / 9.0f;
+    const int windowHeight = static_cast<int>(windowWidth / aspectRatio);
+
+    sf::RenderWindow window(sf::VideoMode({ windowWidth, windowHeight }), "ImGui + SFML = <3");
     window.setFramerateLimit(60);
     ImGui::SFML::Init(window);
 
-    // create a file browser instance
     ImGui::FileBrowser fileDialog;
 
-    // (optional) set browser properties
     fileDialog.SetTitle("Select an image");
     fileDialog.SetTypeFilters({ ".jpg", ".jpeg", ".png" });
 
@@ -25,7 +32,7 @@ int main() {
     sf::Sprite sprite(texture);
     bool hasImage = false;
     bool hasChannelReseted = false;
-    bool redSelected = false, greenSelected = false, blueSelected = false;
+    bool redSelected = true, greenSelected = true, blueSelected = true;
 
     sf::Clock deltaClock;
     while (window.isOpen()) {
@@ -39,54 +46,165 @@ int main() {
 
         ImGui::SFML::Update(window, deltaClock.restart());
 
-
-        if (ImGui::Begin("Window"))
+        if (ImGui::BeginMainMenuBar())
         {
-            if (ImGui::Button("Open file"))
-                fileDialog.Open();
+            if (ImGui::BeginMenu("File"))
+            {
+                if (ImGui::MenuItem("Load")) {
+                    fileDialog.Open();
+                }
 
+                if (ImGui::MenuItem("Exit")) {
+                    exit(0);
+                }
+
+                ImGui::EndMenu();
+            }
+            if (ImGui::BeginMenu("Image", hasImage))
+            {
+                if (ImGui::MenuItem("Original", nullptr, false, hasImage)) {
+                    texture = original_texture;
+                    redSelected = true;
+                    greenSelected = true;
+                    blueSelected = true;
+                    hasChannelReseted = false;
+                    sprite.setTexture(texture, true);
+                }
+
+                if (ImGui::MenuItem("Greyscale", nullptr, false, hasImage)) {
+                    texture = original_texture;
+                    texture = gray_scale(texture);
+                    redSelected = false;
+                    greenSelected = false;
+                    blueSelected = false;
+                    hasChannelReseted = true;
+                    sprite.setTexture(texture, true);
+                }
+
+                if (ImGui::BeginMenu("Channel", hasImage))
+                {
+                    bool channelsChanged = false;
+
+                    if (ImGui::MenuItem("Red", nullptr, redSelected)) {
+                        redSelected = !redSelected;
+                        channelsChanged = true;
+                    }
+                    if (ImGui::MenuItem("Green", nullptr, greenSelected)) {
+                        greenSelected = !greenSelected;
+                        channelsChanged = true;
+                    }
+                    if (ImGui::MenuItem("Blue", nullptr, blueSelected)) {
+                        blueSelected = !blueSelected;
+                        channelsChanged = true;
+                    }
+
+                    if (channelsChanged) {
+                        hasChannelReseted = false;
+                        texture = original_texture;
+                        texture = combine_channels(texture, redSelected, greenSelected, blueSelected);
+                        sprite.setTexture(texture, true);
+                    }
+
+                    ImGui::EndMenu();
+                }
+
+                ImGui::EndMenu();
+            }
+        }
+        ImGui::EndMainMenuBar();
+
+        {
+            ImGui::SetNextWindowPos(ImVec2(0, 20));
+            ImGui::SetNextWindowSize(ImVec2(PANEL_WIDTH, ImGui::GetIO().DisplaySize.y - 20));
+
+            ImGui::Begin("Filters", nullptr, ImGuiWindowFlags_NoMove);
             ImGui::BeginDisabled(!hasImage);
 
-            if (ImGui::Button("Original")) {
-                texture = original_texture;
-                sprite.setTexture(texture, true);
-            }
-
-            if (ImGui::Button("Gray Scale")) {
-                texture = original_texture;
-                texture = gray_scale(texture);
-                sprite.setTexture(texture, true);
-            }
-
-            ImGui::Text("Choose channels :");
-            ImGui::Checkbox("Red", &redSelected);
-            ImGui::SameLine();
-            ImGui::Checkbox("Green", &greenSelected);
-            ImGui::SameLine();
-            ImGui::Checkbox("Blue", &blueSelected);
-
-            if (redSelected || greenSelected || blueSelected) {
-                hasChannelReseted = false;
-                texture = original_texture;
-                texture = combine_channels(texture, redSelected, greenSelected, blueSelected);
-                sprite.setTexture(texture, true);
-            }
-            else if (hasChannelReseted == false) {
-                hasChannelReseted = true;
-				texture = original_texture;
-				sprite.setTexture(texture, true);
-            }
-
-            ImGui::Text("Choose filter :");
-
             if (ImGui::Button("Convolution")) {
-                texture = convolution_filter(texture, FilterType::GAUSSIAN, 5);
-                sprite.setTexture(texture, true);
+				showConvolutionWindow = true;
+            }
+            if (showConvolutionWindow) {
+                ImGui::Begin("Convolution Options", &showConvolutionWindow, ImGuiWindowFlags_AlwaysAutoResize);
+
+                const char* filterTypes[] = { "Identity", "Mean", "Gaussian", "Sharpen", "Laplacien", "Edge reinforcement (hor)", "Edge reinforcement (ver)" };
+                ImGui::Combo("Filter Type", &selectedFilter, filterTypes, IM_ARRAYSIZE(filterTypes));
+
+                bool enableKernelSize = (selectedFilter == 1 || selectedFilter == 2);
+                if (!enableKernelSize) ImGui::BeginDisabled();
+
+                ImGui::SliderInt("Kernel Size", &kernelSize, 3, 15);
+
+                if (selectedFilter == 0) {
+                    ImGui::TextColored(ImVec4(0.8f, 0.8f, 0.1f, 1.0f), "Default: 1x1 for this kernel.");
+				}
+				else if (!enableKernelSize) {
+					ImGui::TextColored(ImVec4(0.8f, 0.8f, 0.1f, 1.0f), "Default: 3x3 for this kernel.");
+				}
+
+                if (!enableKernelSize) ImGui::EndDisabled();
+
+                if (ImGui::Button("Apply")) {
+                    switch (selectedFilter) {
+                    case 0:
+                        texture = convolution_filter(texture, FilterType::IDENTITY, kernelSize);
+                        break;
+                    case 1:
+                        texture = convolution_filter(texture, FilterType::MEAN, kernelSize);
+                        break;
+                    case 2:
+                        texture = convolution_filter(texture, FilterType::GAUSSIAN, kernelSize);
+                        break;
+                    case 3:
+                        texture = convolution_filter(texture, FilterType::SHARPEN, kernelSize);
+                        break;
+                    case 4:
+                        texture = convolution_filter(texture, FilterType::LAPLACIEN, kernelSize);
+                        break;
+					case 5:
+						texture = convolution_filter(texture, FilterType::EDGE_REINFORCEMENT_HOR, kernelSize);
+						break;
+					case 6:
+						texture = convolution_filter(texture, FilterType::EDGE_REINFORCEMENT_VER, kernelSize);
+						break;
+                    }
+                    sprite.setTexture(texture, true);
+                    showConvolutionWindow = false;
+                }
+
+                ImGui::SameLine();
+                if (ImGui::Button("Cancel")) {
+                    showConvolutionWindow = false;
+                }
+
+                ImGui::End();
             }
 
             ImGui::EndDisabled();
+
+            ImGui::SameLine();
+            ImGui::PushID("ResizePanel");
+            ImGui::InvisibleButton("##resize", ImVec2(5, ImGui::GetContentRegionAvail().y), ImGuiButtonFlags_MouseButtonLeft);
+
+            if (ImGui::IsWindowHovered(ImGuiHoveredFlags_RootAndChildWindows) &&
+                !ImGui::IsAnyItemHovered() &&
+                !ImGui::IsAnyItemActive()) {
+                ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
+            }
+
+            if (ImGui::IsWindowHovered(ImGuiHoveredFlags_RootAndChildWindows) && ImGui::IsMouseDragging(ImGuiMouseButton_Left)) {
+                PANEL_WIDTH += ImGui::GetIO().MouseDelta.x;
+                PANEL_WIDTH = std::clamp(PANEL_WIDTH, 80.0f, 250.0f);
+                float scaleX = static_cast<float>(window.getSize().x - 2 * PANEL_WIDTH) / texture.getSize().x;
+                float scaleY = static_cast<float>(window.getSize().y) / texture.getSize().y;
+                float scale = std::min(scaleX, scaleY);
+                sprite.setScale({ scale, scale });
+                sprite.setPosition({ (window.getSize().x - sprite.getGlobalBounds().size.x + PANEL_WIDTH) / 2,
+                (window.getSize().y - sprite.getGlobalBounds().size.y) / 2 });
+            }
+
+            ImGui::PopID();
+            ImGui::End();
         }
-        ImGui::End();
 
         fileDialog.Display();
 
@@ -97,26 +215,28 @@ int main() {
                 return EXIT_FAILURE;
             }
 
-			// save the original texture, not sure it's the best way but it works
 			original_texture.loadFromImage(texture.copyToImage());
 
-			// Rescale the image to fit the window
 			sprite.setTexture(texture, true);
             hasImage = true;
+
             sf::Vector2u windowSize = window.getSize();
             sf::Vector2u textureSize = texture.getSize();
-            float scaleX = static_cast<float>(windowSize.x) / textureSize.x;
+
+            float scaleX = static_cast<float>(windowSize.x + 2 * PANEL_WIDTH) / textureSize.x;
             float scaleY = static_cast<float>(windowSize.y) / textureSize.y;
             float scale = std::min(scaleX, scaleY);
             sprite.setScale({ scale, scale });
+
             sf::FloatRect spriteBounds = sprite.getGlobalBounds();
-            sprite.setPosition({ (windowSize.x - spriteBounds.size.x) / 2,
+            sprite.setPosition({ (windowSize.x - spriteBounds.size.x - PANEL_WIDTH) / 2,
                 (windowSize.y - spriteBounds.size.y) / 2 });
+
 			std::cout << "Selected filename: " << fileDialog.GetSelected().string() << std::endl;
             fileDialog.ClearSelected();
         }
 
-        window.clear(sf::Color::Black);
+        window.clear({42, 42, 42});
 	    
 		if (hasImage)
 		    window.draw(sprite);
