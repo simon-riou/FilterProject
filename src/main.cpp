@@ -18,7 +18,7 @@ int main() {
     const float aspectRatio = 16.0f / 9.0f;
     const int windowHeight = static_cast<int>(windowWidth / aspectRatio);
 
-    sf::RenderWindow window(sf::VideoMode({ windowWidth, windowHeight }), "ImGui + SFML = <3");
+    sf::RenderWindow window(sf::VideoMode({ windowWidth, windowHeight }), "TTah l'itfi <3");
     window.setFramerateLimit(60);
     ImGui::SFML::Init(window);
 
@@ -126,15 +126,41 @@ int main() {
             if (showConvolutionWindow) {
                 ImGui::Begin("Convolution Options", &showConvolutionWindow, ImGuiWindowFlags_AlwaysAutoResize);
 
-                const char* filterTypes[] = { "Identity", "Mean", "Gaussian", "Sharpen", "Laplacien", "Edge reinforcement (hor)", "Edge reinforcement (ver)" };
+                const char* filterTypes[] = { "Custom", "Identity", "Mean", "Gaussian", "Sharpen", "Laplacien", "Edge reinforcement (hor)", "Edge reinforcement (ver)"};
                 ImGui::Combo("Filter Type", &selectedFilter, filterTypes, IM_ARRAYSIZE(filterTypes));
 
-                bool enableKernelSize = (selectedFilter == 1 || selectedFilter == 2);
-                if (!enableKernelSize) ImGui::BeginDisabled();
-
-                ImGui::SliderInt("Kernel Size", &kernelSize, 3, 15);
+                static std::vector<double> customKernel(9, 0.0f);
 
                 if (selectedFilter == 0) {
+                    ImGui::Text("Custom Kernel");
+                    int kernelArea = kernelSize * kernelSize;
+
+                    if (customKernel.size() != kernelArea) {
+                        customKernel.resize(kernelArea, 0.0f);
+                    }
+
+                    for (int i = 0; i < kernelSize; i++) {
+                        for (int j = 0; j < kernelSize; j++) {
+                            ImGui::PushID(i * kernelSize + j);
+                            ImGui::SetNextItemWidth(40);
+                            ImGui::InputDouble("##UserValue", &customKernel[i * kernelSize + j], 0.0f, 0.0f, "%.4f");
+                            ImGui::PopID();
+                            ImGui::SameLine();
+                        }
+                        ImGui::NewLine();
+                    }
+                }
+
+                bool enableKernelSize = (selectedFilter == 2 || selectedFilter == 3 || selectedFilter == 0);
+                if (!enableKernelSize) ImGui::BeginDisabled();
+
+                if (ImGui::SliderInt("Kernel Size", &kernelSize, 3, 15)) {
+                    if (kernelSize % 2 == 0) {
+                        kernelSize += 1;
+                    }
+                }
+
+                if (selectedFilter == 1) {
                     ImGui::TextColored(ImVec4(0.8f, 0.8f, 0.1f, 1.0f), "Default: 1x1 for this kernel.");
 				}
 				else if (!enableKernelSize) {
@@ -146,24 +172,27 @@ int main() {
                 if (ImGui::Button("Apply")) {
                     switch (selectedFilter) {
                     case 0:
-                        texture = convolution_filter(texture, FilterType::IDENTITY, kernelSize);
+                        texture = convolution_filter(texture, FilterType::CUSTOM, kernelSize, customKernel);
                         break;
                     case 1:
-                        texture = convolution_filter(texture, FilterType::MEAN, kernelSize);
+                        texture = convolution_filter(texture, FilterType::IDENTITY, kernelSize);
                         break;
                     case 2:
-                        texture = convolution_filter(texture, FilterType::GAUSSIAN, kernelSize);
+                        texture = convolution_filter(texture, FilterType::MEAN, kernelSize);
                         break;
                     case 3:
-                        texture = convolution_filter(texture, FilterType::SHARPEN, kernelSize);
+                        texture = convolution_filter(texture, FilterType::GAUSSIAN, kernelSize);
                         break;
                     case 4:
+                        texture = convolution_filter(texture, FilterType::SHARPEN, kernelSize);
+                        break;
+                    case 5:
                         texture = convolution_filter(texture, FilterType::LAPLACIEN, kernelSize);
                         break;
-					case 5:
+					case 6:
 						texture = convolution_filter(texture, FilterType::EDGE_REINFORCEMENT_HOR, kernelSize);
 						break;
-					case 6:
+					case 7:
 						texture = convolution_filter(texture, FilterType::EDGE_REINFORCEMENT_VER, kernelSize);
 						break;
                     }
@@ -193,7 +222,7 @@ int main() {
 
             if (ImGui::IsWindowHovered(ImGuiHoveredFlags_RootAndChildWindows) && ImGui::IsMouseDragging(ImGuiMouseButton_Left)) {
                 PANEL_WIDTH += ImGui::GetIO().MouseDelta.x;
-                PANEL_WIDTH = std::clamp(PANEL_WIDTH, 80.0f, 250.0f);
+                PANEL_WIDTH = std::clamp(PANEL_WIDTH, 100.0f, 250.0f);
                 float scaleX = static_cast<float>(window.getSize().x - 2 * PANEL_WIDTH) / texture.getSize().x;
                 float scaleY = static_cast<float>(window.getSize().y) / texture.getSize().y;
                 float scale = std::min(scaleX, scaleY);
@@ -223,13 +252,13 @@ int main() {
             sf::Vector2u windowSize = window.getSize();
             sf::Vector2u textureSize = texture.getSize();
 
-            float scaleX = static_cast<float>(windowSize.x + 2 * PANEL_WIDTH) / textureSize.x;
+            float scaleX = static_cast<float>(windowSize.x - 2 * PANEL_WIDTH) / textureSize.x;
             float scaleY = static_cast<float>(windowSize.y) / textureSize.y;
             float scale = std::min(scaleX, scaleY);
             sprite.setScale({ scale, scale });
 
             sf::FloatRect spriteBounds = sprite.getGlobalBounds();
-            sprite.setPosition({ (windowSize.x - spriteBounds.size.x - PANEL_WIDTH) / 2,
+            sprite.setPosition({ (windowSize.x - spriteBounds.size.x + PANEL_WIDTH) / 2,
                 (windowSize.y - spriteBounds.size.y) / 2 });
 
 			std::cout << "Selected filename: " << fileDialog.GetSelected().string() << std::endl;

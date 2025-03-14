@@ -16,7 +16,8 @@ enum class FilterType {
 	SHARPEN,
 	LAPLACIEN,
 	EDGE_REINFORCEMENT_HOR,
-	EDGE_REINFORCEMENT_VER
+	EDGE_REINFORCEMENT_VER,
+    CUSTOM
 };
 
 enum class PaddingType {
@@ -86,13 +87,16 @@ inline void apply_convolution(std::vector<std::uint8_t>& pixels, sf::Vector2u si
         }
     }
 
-    std::clog << "\rDone.                 \n";
+    std::clog << "\rDone.                                   \n";
 
     pixels = output;
 }
 
-inline sf::Texture convolution_filter(const sf::Texture& texture, FilterType filtertype, size_t kernel_size, PaddingType paddingtype = PaddingType::ZERO) {
-	std::vector<double> kernel = get_kernel(filtertype, kernel_size);
+inline sf::Texture convolution_filter(const sf::Texture& texture, FilterType filtertype, size_t kernel_size, std::vector<double> custom_kernel = {}, PaddingType paddingtype = PaddingType::ZERO) {
+	if (filtertype == FilterType::CUSTOM && custom_kernel.empty()) {
+		throw std::invalid_argument("The custom kernel must be provided.");
+	}
+    std::vector<double> kernel = get_kernel(filtertype, kernel_size);
 
     sf::Image image = texture.copyToImage();
     sf::Vector2u size = image.getSize();
@@ -118,6 +122,9 @@ inline sf::Texture convolution_filter(const sf::Texture& texture, FilterType fil
 		case FilterType::EDGE_REINFORCEMENT_VER:
             apply_convolution(pixels, size, kernel, 3, paddingtype);
             break;
+		case FilterType::CUSTOM:
+			apply_convolution(pixels, size, custom_kernel, kernel_size, paddingtype);
+			break;
     }
 
     sf::Image outputImage(size, pixels.data());
