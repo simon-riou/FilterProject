@@ -1,17 +1,20 @@
 cmake_minimum_required(VERSION 3.28)
-project(CMakeSFMLProject LANGUAGES CXX)
+project(ImageFilterApp LANGUAGES CXX)
 
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
+# Fetch SFML
 include(FetchContent)
 FetchContent_Declare(SFML
     GIT_REPOSITORY https://github.com/SFML/SFML.git
     GIT_TAG 3.0.0
     GIT_SHALLOW ON
-    EXCLUDE_FROM_ALL
-    SYSTEM)
+    SYSTEM
+)
 FetchContent_MakeAvailable(SFML)
 
+# ImGui sources
 set(IMGUI_SRC
     imgui/imgui-SFML.cpp
     imgui/imgui.cpp
@@ -20,7 +23,26 @@ set(IMGUI_SRC
     imgui/imgui_widgets.cpp
 )
 
-add_executable(main src/main.cpp ${IMGUI_SRC} "include/filters.h" "include/image_encoding.h" "include/kernel_computation.h" )
-target_compile_features(main PRIVATE cxx_std_17)
-target_include_directories(main PRIVATE imgui/)
-target_link_libraries(main PRIVATE SFML::Graphics SFML::Window SFML::System)
+# Gather all project sources
+file(GLOB_RECURSE SRC_FILES
+    src/*.cpp
+)
+
+# Build executable
+add_executable(ImageFilterApp
+    ${SRC_FILES}
+    ${IMGUI_SRC}
+)
+
+# Include directories
+target_include_directories(ImageFilterApp PRIVATE
+    include
+    imgui
+)
+
+# Link libraries
+target_link_libraries(ImageFilterApp PRIVATE
+    SFML::Graphics
+    SFML::Window
+    SFML::System
+)

@@ -1,51 +1,24 @@
-#pragma once
+#include "filters/convolution/ConvolutionEngine.h"
+#include "filters/convolution/KernelComputer.h"
 
-#include <SFML/Graphics.hpp>
-#include <vector>
-#include <algorithm>
-#include <cstdint>
 #include <iostream>
+#include <algorithm>
 #include <cmath>
 
-#include "kernel_computation.h"
-
-enum class FilterType {
-	IDENTITY,
-	MEAN,
-	GAUSSIAN,
-	SHARPEN,
-	LAPLACIEN,
-	EDGE_REINFORCEMENT_HOR,
-	EDGE_REINFORCEMENT_VER,
-    CUSTOM
-};
-
-enum class PaddingType {
-	ZERO,
-	REPLICATE
-};
-
-inline std::vector<double> get_kernel(FilterType filtertype, size_t kernel_size) {
-    switch (filtertype) {
-    case FilterType::IDENTITY:
-        return compute_identity_kernel();
-    case FilterType::MEAN:
-        return compute_mean_kernel(kernel_size);
-    case FilterType::GAUSSIAN:
-        return compute_gaussian_kernel(kernel_size);
-	case FilterType::SHARPEN:
-		return compute_sharpen_kernel();
-	case FilterType::LAPLACIEN:
-		return compute_laplacien_kernel();
-	case FilterType::EDGE_REINFORCEMENT_HOR:
-        return compute_edge_reiforcement_hor();
-	case FilterType::EDGE_REINFORCEMENT_VER:
-		return compute_edge_reiforcement_ver();
+std::vector<double> getKernel(ConvolutionType ConvolutionType, size_t kernel_size) {
+    switch (ConvolutionType) {
+        case ConvolutionType::IDENTITY: return compute_identity_kernel();
+        case ConvolutionType::MEAN: return compute_mean_kernel(kernel_size);
+        case ConvolutionType::GAUSSIAN: return compute_gaussian_kernel(kernel_size);
+        case ConvolutionType::SHARPEN: return compute_sharpen_kernel();
+        case ConvolutionType::LAPLACIEN: return compute_laplacien_kernel();
+        case ConvolutionType::EDGE_REINFORCEMENT_HOR: return compute_edge_reiforcement_hor();
+        case ConvolutionType::EDGE_REINFORCEMENT_VER: return compute_edge_reiforcement_ver();
+        default: return {};
     }
-	return {};
 }
 
-inline void apply_convolution(std::vector<std::uint8_t>& pixels, sf::Vector2u size, const std::vector<double>& kernel, size_t kernel_size, PaddingType paddingtype) {
+void computeConvolution(std::vector<std::uint8_t>& pixels, sf::Vector2u size, const std::vector<double>& kernel, size_t kernel_size, PaddingType paddingtype) {
     if (kernel_size % 2 == 0 || kernel.size() != kernel_size * kernel_size) {
         throw std::invalid_argument("The kernel must be odd and squared.");
     }
@@ -92,11 +65,12 @@ inline void apply_convolution(std::vector<std::uint8_t>& pixels, sf::Vector2u si
     pixels = output;
 }
 
-inline sf::Texture convolution_filter(const sf::Texture& texture, FilterType filtertype, size_t kernel_size, std::vector<double> custom_kernel = {}, PaddingType paddingtype = PaddingType::ZERO) {
-	if (filtertype == FilterType::CUSTOM && custom_kernel.empty()) {
-		throw std::invalid_argument("The custom kernel must be provided.");
-	}
-    std::vector<double> kernel = get_kernel(filtertype, kernel_size);
+sf::Texture applyConvolutionFilter(const sf::Texture& texture, ConvolutionType ConvolutionType, size_t kernel_size,
+                              const std::vector<double>& custom_kernel, PaddingType paddingtype) {
+    if (ConvolutionType == ConvolutionType::CUSTOM && custom_kernel.empty()) {
+        throw std::invalid_argument("The custom kernel must be provided.");
+    }
+    std::vector<double> kernel = getKernel(ConvolutionType, kernel_size);
 
     sf::Image image = texture.copyToImage();
     sf::Vector2u size = image.getSize();
@@ -104,27 +78,27 @@ inline sf::Texture convolution_filter(const sf::Texture& texture, FilterType fil
     std::vector<std::uint8_t> pixels;
     const std::uint8_t* originalPixels = image.getPixelsPtr();
     if (!originalPixels) {
-        std::cerr << "Erreur: impossible de récupérer les pixels." << std::endl;
+        std::cerr << "Erreur: impossible de rï¿½cupï¿½rer les pixels." << std::endl;
         return sf::Texture();
     }
     pixels.assign(originalPixels, originalPixels + size.x * size.y * 4);
 
-    switch (filtertype) {
-        case FilterType::IDENTITY:
+    switch (ConvolutionType) {
+        case ConvolutionType::IDENTITY:
             return texture;
-        case FilterType::MEAN:
-        case FilterType::GAUSSIAN:
-            apply_convolution(pixels, size, kernel, kernel_size, paddingtype);
+        case ConvolutionType::MEAN:
+        case ConvolutionType::GAUSSIAN:
+            computeConvolution(pixels, size, kernel, kernel_size, paddingtype);
             break;
-        case FilterType::SHARPEN:
-        case FilterType::LAPLACIEN:
-		case FilterType::EDGE_REINFORCEMENT_HOR:
-		case FilterType::EDGE_REINFORCEMENT_VER:
-            apply_convolution(pixels, size, kernel, 3, paddingtype);
+        case ConvolutionType::SHARPEN:
+        case ConvolutionType::LAPLACIEN:
+        case ConvolutionType::EDGE_REINFORCEMENT_HOR:
+        case ConvolutionType::EDGE_REINFORCEMENT_VER:
+            computeConvolution(pixels, size, kernel, 3, paddingtype);
             break;
-		case FilterType::CUSTOM:
-			apply_convolution(pixels, size, custom_kernel, kernel_size, paddingtype);
-			break;
+        case ConvolutionType::CUSTOM:
+            computeConvolution(pixels, size, custom_kernel, kernel_size, paddingtype);
+            break;
     }
 
     sf::Image outputImage(size, pixels.data());
