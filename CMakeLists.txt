@@ -1,7 +1,8 @@
 cmake_minimum_required(VERSION 3.28)
-project(ImageFilterApp LANGUAGES CXX)
+project(ImageFilterApp LANGUAGES CXX CUDA)
 
 set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CUDA_STANDARD 17)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 # Fetch SFML
@@ -23,9 +24,10 @@ set(IMGUI_SRC
     imgui/imgui_widgets.cpp
 )
 
-# Gather all project sources
+# Gather all .cpp and .cu source files
 file(GLOB_RECURSE SRC_FILES
     src/*.cpp
+    src/*.cu
 )
 
 # Build executable
@@ -45,4 +47,9 @@ target_link_libraries(ImageFilterApp PRIVATE
     SFML::Graphics
     SFML::Window
     SFML::System
+)
+
+# CUDA options
+set_target_properties(ImageFilterApp PROPERTIES
+    CUDA_SEPARABLE_COMPILATION ON
 )

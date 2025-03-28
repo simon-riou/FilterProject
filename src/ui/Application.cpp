@@ -146,8 +146,14 @@ void Application::renderFilterPanel() {
 
         bool enableKernelSize = (selectedFilter == 0 || selectedFilter == 2 || selectedFilter == 3);
         if (!enableKernelSize) ImGui::BeginDisabled();
+        
+        if (static_cast<ConvolutionType>(selectedFilter) == ConvolutionType::CUSTOM) {
+            maxKernelSize = 7;
+        } else {
+            maxKernelSize = 150;
+        }
 
-        if (ImGui::SliderInt("Kernel Size", &kernelSize, 3, 15)) {
+        if (ImGui::SliderInt("Kernel Size", &kernelSize, 3, maxKernelSize)) {
             if (kernelSize % 2 == 0) kernelSize++;
         }
 
@@ -163,8 +169,24 @@ void Application::renderFilterPanel() {
         const char* PaddingTypes[] = { "Zero", "Replicate" };
         ImGui::Combo("Padding Type", &selectedPadding, PaddingTypes, IM_ARRAYSIZE(PaddingTypes));
 
+        // It has to replicate the order of BackendType in BackendType.h
+        const char* backendOptions[] = { "CPU", "GPU (custom)", "GPU (built-in)" };
+        ImGui::Combo("Computation Backend", &selectedBackend, backendOptions, IM_ARRAYSIZE(backendOptions));
+        // TODO: fix this condition when other backend are implemented
+        if (static_cast<BackendType>(selectedBackend) == BackendType::GPU_BUILD_IN) {
+            ImGui::TextColored(ImVec4(1.0f, 0.2f, 0.1f, 1.0f), "Error: This backend is not available.");
+        }
+
+        // It has to replicate the order of AlgorithmType in AlgorithType.h
+        const char* algorithmOptions[] = { "Naive", "Separable", "FFT", "Tiled" };
+        ImGui::Combo("Algorithm", &selectedAlgorithm, algorithmOptions, IM_ARRAYSIZE(algorithmOptions));
+        // TODO: fix this condition when other algorithm are implemented
+        if (static_cast<AlgorithmType>(selectedAlgorithm) != AlgorithmType::Naive) {
+            ImGui::TextColored(ImVec4(1.0f, 0.2f, 0.1f, 1.0f), "Error: This algorithm is not implemented.");
+        }
+
         if (ImGui::Button("Apply")) {
-            ConvolutionFilter filter(static_cast<ConvolutionType>(selectedFilter), kernelSize, customKernel, static_cast<PaddingType>(selectedPadding));
+            ConvolutionFilter filter(static_cast<ConvolutionType>(selectedFilter), kernelSize, static_cast<PaddingType>(selectedPadding), static_cast<BackendType>(selectedBackend), static_cast<AlgorithmType>(selectedAlgorithm), customKernel);
             texture = filter.apply(texture);
             sprite.setTexture(texture, true);
             showConvolutionWindow = false;

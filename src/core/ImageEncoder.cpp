@@ -1,5 +1,7 @@
 #include "core/ImageEncoder.h"
 
+#include <iostream>
+
 sf::Texture ImageEncoder::toGrayscale(const sf::Texture& texture) {
     sf::Image image = texture.copyToImage();
     sf::Vector2u size = image.getSize();
@@ -13,7 +15,11 @@ sf::Texture ImageEncoder::toGrayscale(const sf::Texture& texture) {
     }
 
     sf::Texture result;
-    result.loadFromImage(image);
+    bool hasLoaded = result.loadFromImage(image);
+    if (!hasLoaded) {
+        std::cerr << "Erreur lors du chaegement de la texure depuis l'image." << std::endl;
+        exit(1);
+    }
     return result;
 }
 
@@ -33,6 +39,10 @@ sf::Texture ImageEncoder::combineChannels(const sf::Texture& texture, bool red, 
     }
 
     sf::Texture result;
-    result.loadFromImage(image);
+    bool hasLoaded = result.loadFromImage(image);
+    if (!hasLoaded) {
+        std::cerr << "Erreur lors du chaegement de la texure depuis l'image." << std::endl;
+        exit(1);
+    }
     return result;
 }

@@ -27,8 +27,14 @@ private:
     bool redSelected = true, greenSelected = true, blueSelected = true;
 
     bool showConvolutionWindow = false;
+
     int selectedFilter = 0;
     int selectedPadding = 0;
+    int selectedBackend = 0;
+    int selectedAlgorithm = 0;
+
+    int maxKernelSize = 150;
     int kernelSize = 3;
+    
     float PANEL_WIDTH = 120.0f;
 };
