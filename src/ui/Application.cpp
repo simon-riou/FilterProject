@@ -124,10 +124,10 @@ void Application::renderFilterPanel() {
 
         // It has to replicate the order of PaddingType in ConvolutionType.h
         const char* ConvolutionTypes[] = { "Custom", "Identity", "Mean", "Gaussian", "Sharpen", "Laplacien", "Edge reinforcement (hor)", "Edge reinforcement (ver)" };
-        ImGui::Combo("Filter Type", &selectedFilter, ConvolutionTypes, IM_ARRAYSIZE(ConvolutionTypes));
+        ImGui::Combo("Filter Type", &selectedConvolution, ConvolutionTypes, IM_ARRAYSIZE(ConvolutionTypes));
 
         static std::vector<double> customKernel(9, 0.0f);
-        if (selectedFilter == 0) {
+        if (static_cast<ConvolutionType>(selectedConvolution) == ConvolutionType::CUSTOM) {
             ImGui::Text("Custom Kernel");
             int kernelArea = kernelSize * kernelSize;
             if (customKernel.size() != kernelArea) customKernel.resize(kernelArea, 0.0f);
@@ -144,22 +144,27 @@ void Application::renderFilterPanel() {
             }
         }
 
-        bool enableKernelSize = (selectedFilter == 0 || selectedFilter == 2 || selectedFilter == 3);
+        bool enableKernelSize = (static_cast<ConvolutionType>(selectedConvolution) == ConvolutionType::CUSTOM || static_cast<ConvolutionType>(selectedConvolution) == ConvolutionType::MEAN || static_cast<ConvolutionType>(selectedConvolution) == ConvolutionType::GAUSSIAN);
         if (!enableKernelSize) ImGui::BeginDisabled();
         
-        if (static_cast<ConvolutionType>(selectedFilter) == ConvolutionType::CUSTOM) {
+        if (static_cast<ConvolutionType>(selectedConvolution) == ConvolutionType::CUSTOM) {
             maxKernelSize = 7;
         } else {
             maxKernelSize = 150;
         }
 
-        if (ImGui::SliderInt("Kernel Size", &kernelSize, 3, maxKernelSize)) {
+        if (ImGui::SliderInt("Kernel Size", &kernelSize, 1, maxKernelSize)) {
             if (kernelSize % 2 == 0) kernelSize++;
         }
 
-        if (selectedFilter == 1) {
+        if (static_cast<ConvolutionType>(selectedConvolution) == ConvolutionType::GAUSSIAN) {
+            ImGui::SliderFloat("Sigma", &sigma, 0.3f, 20.0f);
+        }        
+
+        if (static_cast<ConvolutionType>(selectedConvolution) == ConvolutionType::IDENTITY) {
             ImGui::TextColored(ImVec4(0.8f, 0.8f, 0.1f, 1.0f), "Default: 1x1 for this kernel.");
         } else if (!enableKernelSize) {
+            kernelSize = 3;
             ImGui::TextColored(ImVec4(0.8f, 0.8f, 0.1f, 1.0f), "Default: 3x3 for this kernel.");
         }
 
@@ -173,7 +178,8 @@ void Application::renderFilterPanel() {
         const char* backendOptions[] = { "CPU", "GPU (custom)", "GPU (built-in)" };
         ImGui::Combo("Computation Backend", &selectedBackend, backendOptions, IM_ARRAYSIZE(backendOptions));
         // TODO: fix this condition when other backend are implemented
-        if (static_cast<BackendType>(selectedBackend) == BackendType::GPU_BUILD_IN) {
+        if ((static_cast<ConvolutionType>(selectedConvolution) == ConvolutionType::GAUSSIAN &&
+            static_cast<BackendType>(selectedBackend) == BackendType::GPU_BUILD_IN)) {
             ImGui::TextColored(ImVec4(1.0f, 0.2f, 0.1f, 1.0f), "Error: This backend is not available.");
         }
 
@@ -186,7 +192,7 @@ void Application::renderFilterPanel() {
         }
 
         if (ImGui::Button("Apply")) {
-            ConvolutionFilter filter(static_cast<ConvolutionType>(selectedFilter), kernelSize, static_cast<PaddingType>(selectedPadding), static_cast<BackendType>(selectedBackend), static_cast<AlgorithmType>(selectedAlgorithm), customKernel);
+            ConvolutionFilter filter(static_cast<ConvolutionType>(selectedConvolution), kernelSize, sigma, static_cast<PaddingType>(selectedPadding), static_cast<BackendType>(selectedBackend), static_cast<AlgorithmType>(selectedAlgorithm), customKernel);
             texture = filter.apply(texture);
             sprite.setTexture(texture, true);
             showConvolutionWindow = false;

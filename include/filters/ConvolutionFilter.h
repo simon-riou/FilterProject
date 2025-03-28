@@ -9,7 +9,7 @@
 
 class ConvolutionFilter : public IFilter {
 public:
-    ConvolutionFilter(ConvolutionType type, int kernelSize, PaddingType padding, BackendType backend, AlgorithmType algorithm, std::vector<double>& customKernel);
+    ConvolutionFilter(ConvolutionType type, int kernelSize, double sigma, PaddingType padding, BackendType backend, AlgorithmType algorithm, std::vector<double>& customKernel);
 
     std::string name() const override;
     sf::Texture apply(const sf::Texture& input) override;
@@ -21,5 +21,6 @@ private:
     AlgorithmType algorithm;
 
     int kernelSize;
+    double sigma;
     std::vector<double> customKernel;
 };

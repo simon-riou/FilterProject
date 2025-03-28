@@ -28,13 +28,14 @@ private:
 
     bool showConvolutionWindow = false;
 
-    int selectedFilter = 0;
+    int selectedConvolution = 0;
     int selectedPadding = 0;
     int selectedBackend = 0;
     int selectedAlgorithm = 0;
 
     int maxKernelSize = 150;
     int kernelSize = 3;
+    float sigma = 1.0f;
     
     float PANEL_WIDTH = 120.0f;
 };

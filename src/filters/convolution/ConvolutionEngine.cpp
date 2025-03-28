@@ -9,11 +9,11 @@
 #include <algorithm>
 #include <cmath>
 
-std::vector<double> getKernel(ConvolutionType ConvolutionType, size_t kernel_size) {
+std::vector<double> getKernel(ConvolutionType ConvolutionType, size_t kernel_size, double sigma = 1.0) {
     switch (ConvolutionType) {
         case ConvolutionType::IDENTITY: return compute_identity_kernel();
         case ConvolutionType::MEAN: return compute_mean_kernel(kernel_size);
-        case ConvolutionType::GAUSSIAN: return compute_gaussian_kernel(kernel_size);
+        case ConvolutionType::GAUSSIAN: return compute_gaussian_kernel(kernel_size, sigma);
         case ConvolutionType::SHARPEN: return compute_sharpen_kernel();
         case ConvolutionType::LAPLACIEN: return compute_laplacien_kernel();
         case ConvolutionType::EDGE_REINFORCEMENT_HOR: return compute_edge_reiforcement_hor();
@@ -22,12 +22,13 @@ std::vector<double> getKernel(ConvolutionType ConvolutionType, size_t kernel_siz
     }
 }
 
-sf::Texture applyConvolutionFilter(const sf::Texture& texture, ConvolutionType ConvolutionType, size_t kernel_size,
+sf::Texture applyConvolutionFilter(const sf::Texture& texture, ConvolutionType ConvolutionType, size_t kernel_size, double sigma,
                               const std::vector<double>& custom_kernel, PaddingType paddingtype, BackendType backend, AlgorithmType algorithm) {
     if (ConvolutionType == ConvolutionType::CUSTOM && custom_kernel.empty()) {
         throw std::invalid_argument("The custom kernel must be provided.");
     }
-    std::vector<double> kernel = getKernel(ConvolutionType, kernel_size);
+
+    std::vector<double> kernel = getKernel(ConvolutionType, kernel_size, sigma);
 
     sf::Image image = texture.copyToImage();
     sf::Vector2u size = image.getSize();

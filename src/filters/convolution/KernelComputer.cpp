@@ -10,11 +10,9 @@ std::vector<double> compute_mean_kernel(size_t kernel_size) {
 	return std::vector<double>(kernel_size * kernel_size, 1.0f / static_cast<double>(kernel_size * kernel_size));
 }
 
-std::vector<double> compute_gaussian_kernel(size_t kernel_size) {
+std::vector<double> compute_gaussian_kernel(size_t kernel_size, double sigma) {
 	int n = kernel_size;
     int m = kernel_size;
-
-	double sigma = 1.0;
 
     std::vector<double> h(m * n, 0.0);
     double sum = 0.0;
