@@ -11,6 +11,10 @@ public:
     void run();
 
 private:
+    void renderConvolutionButton();
+    void renderConvolutionOptionsWindow();
+
+private:
     void renderMenuBar();
     void renderFilterPanel();
     void handleImageLoading();
